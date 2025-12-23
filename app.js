@@ -76,14 +76,12 @@ async function loadFeed(feed) {
     // Check cache first - if we have it, show immediately
     if (articlesCache[feed]) {
         renderArticles(articlesCache[feed]);
-        loading.style.display = 'none';
         // Still fetch in background to update (doesn't block UI)
         fetchFeed(feed);
         return;
     }
 
-    // No cache - show loading and wait
-    loading.style.display = 'flex';
+    // No cache - clear articles and wait
     articlesList.innerHTML = '';
 
     await fetchFeed(feed);
@@ -118,9 +116,6 @@ async function fetchFeed(feed) {
 // Perform the actual fetch with retry logic
 async function performFetch(feed, feedUrl) {
     let lastError = null;
-
-    // Show loading spinner
-    loading.style.display = 'flex';
 
     // Try each CORS proxy in sequence
     for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
@@ -218,11 +213,9 @@ async function performFetch(feed, feedUrl) {
             renderArticles(limitedArticles);
         }
 
-        loading.style.display = 'none';
-
-            // Success! Break out of retry loop
-            console.log(`[${feed}] Successfully fetched using proxy ${proxyIndex + 1}`);
-            return;
+        // Success! Break out of retry loop
+        console.log(`[${feed}] Successfully fetched using proxy ${proxyIndex + 1}`);
+        return;
 
         } catch (error) {
             lastError = error;
@@ -238,7 +231,6 @@ async function performFetch(feed, feedUrl) {
 
     // All proxies failed
     console.error(`[${feed}] All proxies failed. Last error:`, lastError);
-    loading.style.display = 'none';
 
     // Show error state if no cache
     if (!articlesCache[feed]) {
