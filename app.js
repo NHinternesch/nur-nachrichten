@@ -165,15 +165,20 @@ async function performFetch(feed, feedUrl) {
         });
 
         // Filter out video content (tagesschau, tagesthemen, 100 sekunden, etc.)
-        const filteredArticles = articles.filter(article => !isVideoContent(article.title));
+        // Also filter articles where description matches title (usually video content)
+        const filteredArticles = articles.filter(article => {
+            if (isVideoContent(article.title)) return false;
+            if (article.title && article.description && article.title.trim() === article.description.trim()) return false;
+            return true;
+        });
 
         // Sort articles by date (newest first)
         filteredArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
         // Log stats
         const articlesWithImages = filteredArticles.filter(a => a.image).length;
-        const videosFiltered = articles.length - filteredArticles.length;
-        console.log(`[${feed}] Loaded ${filteredArticles.length} articles (${articlesWithImages} with images)${videosFiltered > 0 ? `, filtered ${videosFiltered} videos` : ''}`);
+        const itemsFiltered = articles.length - filteredArticles.length;
+        console.log(`[${feed}] Loaded ${filteredArticles.length} articles (${articlesWithImages} with images)${itemsFiltered > 0 ? `, filtered ${itemsFiltered} items` : ''}`);
 
         // Cache articles
         articlesCache[feed] = filteredArticles;
