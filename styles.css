@@ -230,6 +230,14 @@ body {
     color: white;
 }
 
+.nav-tab.active span {
+    font-weight: 700;
+}
+
+.nav-tab.active svg {
+    stroke-width: 2.5;
+}
+
 .nav-tab span {
     font-size: 13px;
     font-weight: 500;
