@@ -7,6 +7,16 @@ const FEEDS = {
     wissen: 'https://www.tagesschau.de/wissen/index~rss2.xml'
 };
 
+// CORS Proxies (fallback chain for reliability)
+const CORS_PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://api.codetabs.com/v1/proxy?quest='
+];
+
+// Maximum articles per feed
+const MAX_ARTICLES_PER_FEED = 35;
+
 // App State
 let currentFeed = 'home';
 let articlesCache = {};
@@ -100,19 +110,26 @@ async function fetchFeed(feed) {
     }
 }
 
-// Perform the actual fetch
+// Perform the actual fetch with retry logic
 async function performFetch(feed, feedUrl) {
-    try {
-        // Use CORS proxy to fetch RSS feed directly
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`;
+    let lastError = null;
 
-        const response = await fetch(proxyUrl);
+    // Try each CORS proxy in sequence
+    for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
+        const proxyUrl = CORS_PROXIES[proxyIndex] + encodeURIComponent(feedUrl);
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);
-        }
+        try {
+            console.log(`[${feed}] Attempting fetch with proxy ${proxyIndex + 1}/${CORS_PROXIES.length}`);
 
-        const xmlText = await response.text();
+            const response = await fetch(proxyUrl, {
+                signal: AbortSignal.timeout(10000) // 10 second timeout
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const xmlText = await response.text();
 
         // Parse XML
         const parser = new DOMParser();
@@ -175,39 +192,59 @@ async function performFetch(feed, feedUrl) {
         // Sort articles by date (newest first)
         filteredArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
+        // Limit to maximum articles per feed
+        const limitedArticles = filteredArticles.slice(0, MAX_ARTICLES_PER_FEED);
+
         // Log stats
-        const articlesWithImages = filteredArticles.filter(a => a.image).length;
+        const articlesWithImages = limitedArticles.filter(a => a.image).length;
         const itemsFiltered = articles.length - filteredArticles.length;
-        console.log(`[${feed}] Loaded ${filteredArticles.length} articles (${articlesWithImages} with images)${itemsFiltered > 0 ? `, filtered ${itemsFiltered} items` : ''}`);
+        const itemsLimited = filteredArticles.length - limitedArticles.length;
+        console.log(`[${feed}] Loaded ${limitedArticles.length} articles (${articlesWithImages} with images)${itemsFiltered > 0 ? `, filtered ${itemsFiltered} items` : ''}${itemsLimited > 0 ? `, limited from ${filteredArticles.length}` : ''}`);
 
         // Cache articles
-        articlesCache[feed] = filteredArticles;
+        articlesCache[feed] = limitedArticles;
         saveCacheToStorage();
 
         // Render if still on same feed
         if (currentFeed === feed) {
-            renderArticles(filteredArticles);
+            renderArticles(limitedArticles);
         }
 
         loading.style.display = 'none';
 
-    } catch (error) {
-        console.error(`[${feed}] Error fetching feed:`, error);
-        loading.style.display = 'none';
+            // Success! Break out of retry loop
+            console.log(`[${feed}] Successfully fetched using proxy ${proxyIndex + 1}`);
+            return;
 
-        // Show error state if no cache
-        if (!articlesCache[feed]) {
-            articlesList.innerHTML = `
-                <div class="error-state">
-                    <h3>Fehler beim Laden</h3>
-                    <p>Die Artikel konnten nicht geladen werden.</p>
-                    <p style="font-size: 12px; margin-top: 8px;">Fehler: ${error.message}</p>
-                </div>
-            `;
-        } else {
-            // Still show cached articles even if refresh fails
-            console.log(`[${feed}] Using cached articles due to fetch error`);
+        } catch (error) {
+            lastError = error;
+            console.warn(`[${feed}] Proxy ${proxyIndex + 1} failed:`, error.message);
+
+            // If this wasn't the last proxy, try the next one
+            if (proxyIndex < CORS_PROXIES.length - 1) {
+                console.log(`[${feed}] Trying next proxy...`);
+                continue;
+            }
         }
+    }
+
+    // All proxies failed
+    console.error(`[${feed}] All proxies failed. Last error:`, lastError);
+    loading.style.display = 'none';
+
+    // Show error state if no cache
+    if (!articlesCache[feed]) {
+        articlesList.innerHTML = `
+            <div class="error-state">
+                <h3>Fehler beim Laden</h3>
+                <p>Die Artikel konnten nicht geladen werden.</p>
+                <p style="font-size: 12px; margin-top: 8px;">Alle ${CORS_PROXIES.length} Proxy-Server sind fehlgeschlagen.</p>
+                <p style="font-size: 11px; color: #999;">Letzter Fehler: ${lastError?.message || 'Unbekannt'}</p>
+            </div>
+        `;
+    } else {
+        // Still show cached articles even if refresh fails
+        console.log(`[${feed}] Using cached articles due to fetch error`);
     }
 }
 
