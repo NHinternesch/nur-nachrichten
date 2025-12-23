@@ -24,7 +24,6 @@ let activeFetches = {}; // Track in-flight requests to prevent duplicates
 
 // DOM Elements
 const articlesList = document.getElementById('articles-list');
-const loading = document.getElementById('loading');
 const navTabs = document.querySelectorAll('.nav-tab');
 const refreshButton = document.getElementById('refresh-button');
 
