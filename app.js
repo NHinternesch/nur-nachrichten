@@ -99,6 +99,9 @@ async function fetchFeed(feed) {
         return activeFetches[feed];
     }
 
+    // Show loading indicators
+    refreshButton.classList.add('refreshing');
+
     // Create fetch promise
     const fetchPromise = performFetch(feed, feedUrl);
     activeFetches[feed] = fetchPromise;
@@ -107,12 +110,17 @@ async function fetchFeed(feed) {
         await fetchPromise;
     } finally {
         delete activeFetches[feed];
+        // Remove loading indicators
+        refreshButton.classList.remove('refreshing');
     }
 }
 
 // Perform the actual fetch with retry logic
 async function performFetch(feed, feedUrl) {
     let lastError = null;
+
+    // Show loading spinner
+    loading.style.display = 'flex';
 
     // Try each CORS proxy in sequence
     for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
@@ -524,25 +532,17 @@ function loadCacheFromStorage() {
 
 // Handle refresh button click
 async function handleRefresh() {
-    // Add refreshing class for animation
-    refreshButton.classList.add('refreshing');
-
     try {
         // Clear cache for current feed to force fresh fetch
         delete articlesCache[currentFeed];
         delete activeFetches[currentFeed];
 
-        // Fetch fresh data
+        // Fetch fresh data (loading indicators handled by fetchFeed)
         await loadFeed(currentFeed);
 
         console.log(`[${currentFeed}] Feed refreshed successfully`);
     } catch (error) {
         console.error(`[${currentFeed}] Refresh failed:`, error);
-    } finally {
-        // Remove refreshing class after a minimum duration for UX
-        setTimeout(() => {
-            refreshButton.classList.remove('refreshing');
-        }, 800);
     }
 }
 
