@@ -17,10 +17,14 @@ const CORS_PROXIES = [
 // Maximum articles per feed
 const MAX_ARTICLES_PER_FEED = 35;
 
+// Articles per page
+const ARTICLES_PER_PAGE = 15;
+
 // App State
 let currentFeed = 'home';
 let articlesCache = {};
 let activeFetches = {}; // Track in-flight requests to prevent duplicates
+let displayedArticlesCount = {}; // Track how many articles to show per feed
 
 // DOM Elements
 const articlesList = document.getElementById('articles-list');
@@ -65,6 +69,11 @@ function switchFeed(feed) {
             tab.classList.remove('active');
         }
     });
+
+    // Reset displayed count for new feed if not set
+    if (!displayedArticlesCount[feed]) {
+        displayedArticlesCount[feed] = ARTICLES_PER_PAGE;
+    }
 
     // Load feed
     loadFeed(feed);
@@ -429,7 +438,16 @@ function renderArticles(articles) {
         return;
     }
 
-    articlesList.innerHTML = articles.map(article => `
+    // Initialize displayed count if not set
+    if (!displayedArticlesCount[currentFeed]) {
+        displayedArticlesCount[currentFeed] = ARTICLES_PER_PAGE;
+    }
+
+    const displayCount = displayedArticlesCount[currentFeed];
+    const articlesToShow = articles.slice(0, displayCount);
+    const hasMore = articles.length > displayCount;
+
+    const articlesHtml = articlesToShow.map(article => `
         <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="article-card ${!article.image ? 'no-image' : ''}">
             ${article.image ? `
                 <img
@@ -455,6 +473,24 @@ function renderArticles(articles) {
             </div>
         </a>
     `).join('');
+
+    const loadMoreButton = hasMore ? `
+        <div class="load-more-container">
+            <button class="load-more-button" id="load-more-button">
+                Weitere Artikel
+            </button>
+        </div>
+    ` : '';
+
+    articlesList.innerHTML = articlesHtml + loadMoreButton;
+
+    // Add event listener to load more button
+    if (hasMore) {
+        const loadMoreBtn = document.getElementById('load-more-button');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', handleLoadMore);
+        }
+    }
 }
 
 // Format date
@@ -521,12 +557,32 @@ function loadCacheFromStorage() {
     }
 }
 
+// Handle load more button click
+function handleLoadMore() {
+    const articles = articlesCache[currentFeed];
+    if (!articles) return;
+
+    // Increase displayed count by ARTICLES_PER_PAGE
+    displayedArticlesCount[currentFeed] = Math.min(
+        displayedArticlesCount[currentFeed] + ARTICLES_PER_PAGE,
+        articles.length
+    );
+
+    // Re-render with more articles
+    renderArticles(articles);
+
+    console.log(`[${currentFeed}] Showing ${displayedArticlesCount[currentFeed]} of ${articles.length} articles`);
+}
+
 // Handle refresh button click
 async function handleRefresh() {
     try {
         // Clear cache for current feed to force fresh fetch
         delete articlesCache[currentFeed];
         delete activeFetches[currentFeed];
+
+        // Reset displayed count to default
+        displayedArticlesCount[currentFeed] = ARTICLES_PER_PAGE;
 
         // Fetch fresh data (loading indicators handled by fetchFeed)
         await loadFeed(currentFeed);
