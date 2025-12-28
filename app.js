@@ -15,7 +15,7 @@ const CORS_PROXIES = [
 ];
 
 // Maximum articles per feed
-const MAX_ARTICLES_PER_FEED = 35;
+const MAX_ARTICLES_PER_FEED = 105;
 
 // Articles per page
 const ARTICLES_PER_PAGE = 15;
