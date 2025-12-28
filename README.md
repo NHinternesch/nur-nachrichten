@@ -12,6 +12,8 @@
 
 [https://nhinternesch.github.io/nur-nachrichten/](https://nhinternesch.github.io/nur-nachrichten/)
 
-<img width="3588" height="2484" alt="" src="https://github.com/user-attachments/assets/1ca9503d-f04c-4927-8841-2ac098da4857" />
+<img width="3630" height="2484" alt="Picture1" src="https://github.com/user-attachments/assets/4102644c-ee6d-459d-95ea-5a9cea406709" />
+
+
 
 
