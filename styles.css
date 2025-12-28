@@ -43,7 +43,7 @@ body {
     left: 0;
     right: 0;
     height: var(--nav-height);
-    background: #D97756;
+    background: #025999;
     border-bottom: none;
     display: flex;
     justify-content: flex-start;
@@ -54,7 +54,7 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background-color: #D97756;
+    background-color: #025999;
 }
 
 .nav-title {
@@ -379,13 +379,13 @@ body {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background-color: #D97757;
+    background-color: #025999;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(217, 119, 87, 0.4);
+    box-shadow: 0 4px 12px rgba(2, 89, 153, 0.4);
     transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
     z-index: 1000;
     -webkit-tap-highlight-color: transparent;
@@ -402,8 +402,8 @@ body {
 }
 
 .refresh-button:hover {
-    background-color: #c56647;
-    box-shadow: 0 6px 16px rgba(217, 119, 87, 0.5);
+    background-color: #014477;
+    box-shadow: 0 6px 16px rgba(2, 89, 153, 0.5);
     transform: translateY(-2px);
 }
 
